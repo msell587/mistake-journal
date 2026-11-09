@@ -26,6 +26,8 @@ interface Props {
   onEntryUpdated: (entry: Entry) => void
   onDecide: (mistake: Mistake, accepted: boolean) => Promise<void>
   onOpenInsights: () => void
+  /** Demo mode: entries the offline sample data can correct. */
+  samples?: string[]
 }
 
 const DRAFT_KEY = 'mistake-journal:draft'
@@ -47,6 +49,8 @@ function saveDraft(text: string) {
   }
 }
 
+const TEMPORARY = /rate-limited|overloaded|timed out|HTTP 5\d\d|HTTP 429|provider returned an error/i
+
 /** Turn grammar-agent's technical reasons into something a learner can act on. */
 function friendlyReason(reason: string): string {
   if (/rate-limited|overloaded|timed out|HTTP 5\d\d|HTTP 429/i.test(reason)) {
@@ -56,7 +60,15 @@ function friendlyReason(reason: string): string {
   return 'The suggested fix changed too much, so it was left out to be safe.'
 }
 
-export function WriteView({ entries, labels, onChecked, onEntryUpdated, onDecide, onOpenInsights }: Props) {
+export function WriteView({
+  entries,
+  labels,
+  onChecked,
+  onEntryUpdated,
+  onDecide,
+  onOpenInsights,
+  samples = [],
+}: Props) {
   const [text, setText] = useState(loadDraft)
   const [promptIndex, setPromptIndex] = useState(() => new Date().getDate() % WRITING_PROMPTS.length)
   const [checking, setChecking] = useState(false)
@@ -125,9 +137,11 @@ export function WriteView({ entries, labels, onChecked, onEntryUpdated, onDecide
     setRetrying(true)
     setError(null)
     try {
-      const checked = await api.recheck(result.id, flagged.map((f) => f.sentence))
+      const temporary = flagged.filter((f) => TEMPORARY.test(f.reasons.join(' ')))
+      const checked = await api.recheck(result.id, temporary.map((f) => f.sentence))
       onEntryUpdated(checked.entry)
-      setFlagged(checked.flagged)
+      // Keep the sentences that weren't retried, plus any that failed again.
+      setFlagged([...flagged.filter((f) => !temporary.includes(f)), ...checked.flagged])
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -156,6 +170,24 @@ export function WriteView({ entries, labels, onChecked, onEntryUpdated, onDecide
 
       <div className="write-grid">
         <form className="card editor" onSubmit={submit}>
+          {samples.length > 0 && (
+            <div className="samples">
+              <span className="subtle">Try a sample entry:</span>
+              {samples.map((sample, i) => (
+                <button
+                  key={sample}
+                  type="button"
+                  className="sample-chip"
+                  onClick={() => setText(sample)}
+                  disabled={checking}
+                  title={sample}
+                  aria-label={`Use sample entry ${i + 1}: ${sample}`}
+                >
+                  Sample {i + 1}: “{sample.split(' ').slice(0, 4).join(' ')}…”
+                </button>
+              ))}
+            </div>
+          )}
           <div className="prompt-chip">
             <LightbulbIcon />
             <span>
@@ -283,10 +315,13 @@ export function WriteView({ entries, labels, onChecked, onEntryUpdated, onDecide
                     </strong>
                     <p className="subtle">It was left exactly as you wrote it.</p>
                   </div>
-                  <button className="btn btn-ghost btn-sm" onClick={retryFlagged} disabled={retrying}>
-                    <RefreshIcon size={15} className={retrying ? 'spin' : ''} />
-                    {retrying ? 'Checking…' : 'Try again'}
-                  </button>
+                  {/* Retrying only helps when the AI service had a temporary problem. */}
+                  {flagged.some((f) => TEMPORARY.test(f.reasons.join(' '))) && (
+                    <button className="btn btn-ghost btn-sm" onClick={retryFlagged} disabled={retrying}>
+                      <RefreshIcon size={15} className={retrying ? 'spin' : ''} />
+                      {retrying ? 'Checking…' : 'Try again'}
+                    </button>
+                  )}
                 </div>
                 <ul>
                   {flagged.map((f) => (

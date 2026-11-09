@@ -1,0 +1,12 @@
+# Render Blueprint for the public demo: https://render.com/docs/blueprint-spec
+# In Render, choose New > Blueprint and pick this repository.
+services:
+  - type: web
+    name: mistake-journal-demo
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    # Demo settings live in the Dockerfile. No API key is needed or stored.

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api, type CategoryCount, type Entry, type Mistake } from './api'
+import { api, type CategoryCount, type Entry, type Mistake, type ServerConfig } from './api'
 import { BookIcon, ChartIcon, FlameIcon, PenIcon, TargetIcon } from './components/Icons'
 import { dayStreak, plural } from './lib'
 import { HistoryView } from './views/HistoryView'
@@ -21,15 +21,17 @@ export default function App() {
   const [stats, setStats] = useState<CategoryCount[]>([])
   const [labels, setLabels] = useState<Record<string, string>>({})
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [config, setConfig] = useState<ServerConfig>({ demo: false, samples: [] })
 
   const refreshStats = useCallback(() => api.stats().then(setStats).catch(() => {}), [])
 
   useEffect(() => {
-    Promise.all([api.listEntries(), api.categories(), api.stats()])
-      .then(([e, c, s]) => {
+    Promise.all([api.listEntries(), api.categories(), api.stats(), api.config()])
+      .then(([e, c, s, cfg]) => {
         setEntries(e)
         setLabels(c)
         setStats(s)
+        setConfig(cfg)
       })
       .catch((e: unknown) => setLoadError(e instanceof Error ? e.message : String(e)))
   }, [])
@@ -103,6 +105,16 @@ export default function App() {
         </div>
       </header>
 
+      {config.demo && (
+        <div className="demo-banner" role="note">
+          <strong>Live demo.</strong> Corrections come from sample data, so try one of the sample
+          entries. Your journal is private to this browser and resets from time to time.{' '}
+          <a href="https://github.com/msell587/mistake-journal" target="_blank" rel="noreferrer">
+            Run it with a free Gemini key
+          </a>{' '}
+          to check anything you write.
+        </div>
+      )}
       <main className="page">
         {loadError && (
           <div className="error-box" role="alert" style={{ marginBottom: 18 }}>
@@ -117,6 +129,7 @@ export default function App() {
             onEntryUpdated={(entry) => setEntries((prev) => prev.map((e) => (e.id === entry.id ? entry : e)))}
             onDecide={decide}
             onOpenInsights={() => go('insights')}
+            samples={config.samples}
           />
         )}
         {tab === 'practice' && <PracticeView stats={stats} onWrite={() => go('write')} />}

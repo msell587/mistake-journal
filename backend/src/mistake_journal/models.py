@@ -15,6 +15,7 @@ def utcnow() -> datetime:
 
 class Entry(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
+    owner: str = Field(default="local", index=True)  # see visitors.py
     text: str
     created_at: datetime = Field(default_factory=utcnow, index=True)
 
@@ -40,6 +41,7 @@ class Mistake(SQLModel, table=True):
 
 class DrillSet(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
+    owner: str = Field(default="local", index=True)
     category: str = Field(index=True)
     created_at: datetime = Field(default_factory=utcnow, index=True)
 

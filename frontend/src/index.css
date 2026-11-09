@@ -467,3 +467,19 @@ kbd {
 .done-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
 .review-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
 .review-list .quiz-sentence { font-size: 1.1rem; margin-bottom: 4px; }
+
+/* ---------- Demo mode ---------- */
+.demo-banner {
+  max-width: 960px; margin: 14px auto 0; padding: 10px 14px; border-radius: 12px;
+  background: var(--mark-soft); font-size: 0.9rem; line-height: 1.5;
+  width: calc(100% - 32px);
+}
+.demo-banner a { color: var(--accent-ink); font-weight: 500; }
+.samples { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.sample-chip {
+  border: 1px dashed var(--accent); background: transparent; color: var(--accent-ink);
+  border-radius: 999px; padding: 5px 12px; font-size: 0.85rem; cursor: pointer;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  transition: background-color 150ms var(--ease-out);
+}
+.sample-chip:hover:not(:disabled) { background: var(--accent-soft); }

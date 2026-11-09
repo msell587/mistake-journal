@@ -250,3 +250,78 @@ def test_recheck_fills_in_a_sentence_that_failed(client: TestClient) -> None:
     [m] = rechecked["entry"]["mistakes"]
     assert (m["original_span"], m["replacement"]) == ("go", "goes")
     assert text[m["start"] : m["start"] + 2] == "go"
+
+
+@pytest.fixture
+def demo(monkeypatch: pytest.MonkeyPatch) -> None:
+    import mistake_journal.main as main_module
+    import mistake_journal.visitors as visitors_module
+
+    monkeypatch.setattr(visitors_module, "DEMO_MODE", True)
+    monkeypatch.setattr(main_module, "DEMO_MODE", True)
+
+
+ALICE = {"X-Visitor-Id": "alice-1234"}
+BOB = {"X-Visitor-Id": "bob-56789"}
+
+
+def test_config_reports_demo_mode(client: TestClient, demo: None) -> None:
+    config = client.get("/api/config").json()
+    assert config["demo"] is True and len(config["samples"]) == 2
+
+
+def test_local_mode_has_no_samples(client: TestClient) -> None:
+    assert client.get("/api/config").json() == {"demo": False, "samples": []}
+
+
+def test_demo_requires_a_visitor_id(client: TestClient, demo: None) -> None:
+    assert client.get("/api/entries").status_code == 400
+    assert client.get("/api/entries", headers={"X-Visitor-Id": "x"}).status_code == 400
+
+
+def test_demo_visitors_cannot_see_each_others_data(client: TestClient, demo: None) -> None:
+    entry = client.post("/api/entries", json={"text": "I like reeding."}, headers=ALICE).json()[
+        "entry"
+    ]
+    mistake_id = entry["mistakes"][0]["id"]
+    client.patch(f"/api/mistakes/{mistake_id}", json={"accepted": True}, headers=ALICE)
+    drill = client.post("/api/drills", json={}, headers=ALICE).json()
+
+    assert client.get("/api/entries", headers=BOB).json() == []
+    assert client.get("/api/stats", headers=BOB).json() == []
+    assert client.get("/api/drills", headers=BOB).json() == []
+    assert client.post("/api/drills", json={}, headers=BOB).status_code == 400  # nothing logged
+    assert (
+        client.patch(
+            f"/api/mistakes/{mistake_id}", json={"accepted": False}, headers=BOB
+        ).status_code
+        == 404
+    )
+    assert client.delete(f"/api/entries/{entry['id']}", headers=BOB).status_code == 404
+    assert client.get(f"/api/drills/{drill['id']}", headers=BOB).status_code == 404
+    ex_id = drill["exercises"][0]["id"]
+    assert (
+        client.post(
+            f"/api/exercises/{ex_id}/answer", json={"choice": "goes"}, headers=BOB
+        ).status_code
+        == 404
+    )
+
+    assert len(client.get("/api/entries", headers=ALICE).json()) == 1
+    assert client.get("/api/stats", headers=ALICE).json()[0]["count"] == 1
+
+
+def test_demo_limits_entries_per_visitor(
+    client: TestClient, demo: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import mistake_journal.main as main_module
+
+    monkeypatch.setattr(main_module, "DEMO_MAX_ENTRIES", 2)
+    for _ in range(2):
+        assert client.post("/api/entries", json={"text": "Hi."}, headers=ALICE).status_code == 201
+    assert client.post("/api/entries", json={"text": "Hi."}, headers=ALICE).status_code == 429
+    assert client.post("/api/entries", json={"text": "Hi."}, headers=BOB).status_code == 201
+
+
+def test_health_answers_head_requests(client: TestClient) -> None:
+    assert client.head("/api/health").status_code == 200

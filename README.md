@@ -4,6 +4,12 @@ A daily writing journal for English learners. You write a few sentences, get eac
 
 Corrections come from [grammar-agent](https://github.com/msell587/grammar-agent), my LLM grammar checker with guardrails: sentences the model can't correct safely are flagged instead of silently rewritten.
 
+## Live demo
+
+**Demo link: coming soon** (hosted on Render's free tier, so the first visit after a quiet spell takes about a minute to wake up).
+
+The demo runs in **offline demo mode**: corrections and practice quizzes come from sample data, so no API key is stored on the server and it can't run up costs. Each browser gets its own private journal, and demo data resets when the server restarts. To check anything you write, run it locally with a free Gemini key (below).
+
 ## Features
 
 - **Write:** a daily writing prompt, live word and sentence counts, a progress estimate while the entry is checked, and your draft is kept if you close the tab.
@@ -16,9 +22,15 @@ Corrections come from [grammar-agent](https://github.com/msell587/grammar-agent)
 - **Insights:** entries, words written, mistakes per 100 words, your day streak, a "focus area", mistakes by type, and mistakes per day over the last 14 days. Charts have hover details and a table view.
 - Light and dark mode, works on a phone, keyboard accessible, and respects reduced-motion settings.
 
-## Next
+## Deploying your own demo
 
-1. Deploy a live demo
+The repo includes a `Dockerfile` (one image: the API plus the built React app) and a Render Blueprint (`render.yaml`).
+
+1. Sign in at [render.com](https://render.com) with GitHub.
+2. Choose **New > Blueprint**, pick this repository, and click **Apply**.
+3. Render builds the image and gives you a URL like `https://mistake-journal-demo.onrender.com`. Pushes to `main` redeploy automatically.
+
+Demo settings are in the `Dockerfile` (`MISTAKE_JOURNAL_DEMO=1`, `GRAMMAR_AGENT_PROVIDER=mock`). In demo mode every request carries a random per-browser `X-Visitor-Id`, all data is scoped to it, and each browser is limited to 50 entries and 50 practice sets.
 
 ## Stack
 
@@ -77,6 +89,7 @@ The tests use grammar-agent's mock provider, so they need no API key or network.
 | `GET` | `/api/entries` | List entries, newest first |
 | `PATCH` | `/api/mistakes/{id}` | Accept or reject a correction |
 | `GET` | `/api/stats` | Accepted mistakes per category |
+| `GET` | `/api/config` | Whether this server is in demo mode, and its sample entries |
 | `GET` | `/api/categories` | The fixed category list |
 | `POST` | `/api/entries/{id}/recheck` | Recheck sentences that couldn't be checked |
 | `POST` | `/api/drills` | Generate a practice set (default: most common mistake type) |

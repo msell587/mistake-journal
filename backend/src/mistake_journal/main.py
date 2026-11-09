@@ -8,6 +8,8 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from grammar_agent.config import ConfigError
 from grammar_agent.llm import LLMError
 from grammar_agent.models import SentenceResult, Status
@@ -16,6 +18,13 @@ from sqlmodel import Session, col, select
 
 from mistake_journal.categories import CATEGORIES, categorize, label
 from mistake_journal.checking import CheckFn, get_check_fn
+from mistake_journal.config import (
+    DEMO_MAX_DRILLS,
+    DEMO_MAX_ENTRIES,
+    DEMO_MODE,
+    DEMO_SAMPLES,
+    FRONTEND_DIST,
+)
 from mistake_journal.db import create_db, get_session
 from mistake_journal.drills import DrillError, DrillExample, DrillFn, get_drill_fn
 from mistake_journal.models import (
@@ -37,6 +46,7 @@ from mistake_journal.models import (
     MistakeRead,
     RecheckIn,
 )
+from mistake_journal.visitors import OwnerDep
 
 
 @asynccontextmanager
@@ -57,20 +67,53 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/api/config")
+def config() -> dict[str, object]:
+    """What the frontend needs to know about this server."""
+    return {"demo": DEMO_MODE, "samples": DEMO_SAMPLES if DEMO_MODE else []}
+
+
+def _own_entry(session: Session, entry_id: int, owner: str) -> Entry:
+    entry = session.get(Entry, entry_id)
+    if entry is None or entry.owner != owner:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return entry
+
+
+def _own_drill(session: Session, drill_id: int, owner: str) -> DrillSet:
+    drill = session.get(DrillSet, drill_id)
+    if drill is None or drill.owner != owner:
+        raise HTTPException(status_code=404, detail="Practice set not found")
+    return drill
+
+
+def _demo_limit(
+    session: Session, model: type[Entry] | type[DrillSet], owner: str, limit: int
+) -> None:
+    if not DEMO_MODE:
+        return
+    count = session.exec(select(func.count()).select_from(model).where(model.owner == owner)).one()
+    if count >= limit:
+        raise HTTPException(status_code=429, detail="The demo limit was reached for this browser.")
+
+
 @app.get("/api/categories")
 def categories() -> dict[str, str]:
     return CATEGORIES
 
 
 @app.post("/api/entries", response_model=CheckedEntry, status_code=201)
-def create_entry(body: EntryCreate, session: SessionDep, check: CheckDep) -> CheckedEntry:
+def create_entry(
+    body: EntryCreate, session: SessionDep, check: CheckDep, owner: OwnerDep
+) -> CheckedEntry:
     """Check a new entry with grammar-agent and store every proposed correction."""
+    _demo_limit(session, Entry, owner, DEMO_MAX_ENTRIES)
     try:
         results = check(body.text)
     except (ConfigError, LLMError) as exc:
         raise HTTPException(status_code=502, detail=f"Checking failed: {exc}") from exc
 
-    entry = Entry(text=body.text)
+    entry = Entry(text=body.text, owner=owner)
     flagged = _store_results(entry, results)
     session.add(entry)
     session.commit()
@@ -114,11 +157,11 @@ def _store_results(
 
 
 @app.post("/api/entries/{entry_id}/recheck", response_model=CheckedEntry)
-def recheck(entry_id: int, body: RecheckIn, session: SessionDep, check: CheckDep) -> CheckedEntry:
+def recheck(
+    entry_id: int, body: RecheckIn, session: SessionDep, check: CheckDep, owner: OwnerDep
+) -> CheckedEntry:
     """Check again only the sentences that could not be checked the first time."""
-    entry = session.get(Entry, entry_id)
-    if entry is None:
-        raise HTTPException(status_code=404, detail="Entry not found")
+    entry = _own_entry(session, entry_id, owner)
     flagged: list[FlaggedSentence] = []
     for sentence in dict.fromkeys(body.sentences):  # de-duplicate, keep order
         base = entry.text.find(sentence)
@@ -139,24 +182,23 @@ def recheck(entry_id: int, body: RecheckIn, session: SessionDep, check: CheckDep
 
 
 @app.get("/api/entries", response_model=list[EntryRead])
-def list_entries(session: SessionDep) -> list[Entry]:
-    return list(session.exec(select(Entry).order_by(col(Entry.created_at).desc())))
+def list_entries(session: SessionDep, owner: OwnerDep) -> list[Entry]:
+    query = select(Entry).where(Entry.owner == owner).order_by(col(Entry.created_at).desc())
+    return list(session.exec(query))
 
 
 @app.delete("/api/entries/{entry_id}", status_code=204)
-def delete_entry(entry_id: int, session: SessionDep) -> None:
-    entry = session.get(Entry, entry_id)
-    if entry is None:
-        raise HTTPException(status_code=404, detail="Entry not found")
+def delete_entry(entry_id: int, session: SessionDep, owner: OwnerDep) -> None:
+    entry = _own_entry(session, entry_id, owner)
     session.delete(entry)
     session.commit()
 
 
 @app.patch("/api/mistakes/{mistake_id}", response_model=MistakeRead)
-def decide(mistake_id: int, body: DecisionIn, session: SessionDep) -> Mistake:
+def decide(mistake_id: int, body: DecisionIn, session: SessionDep, owner: OwnerDep) -> Mistake:
     """Record whether the learner accepts a correction. Only accepted ones count in stats."""
     mistake = session.get(Mistake, mistake_id)
-    if mistake is None:
+    if mistake is None or mistake.entry is None or mistake.entry.owner != owner:
         raise HTTPException(status_code=404, detail="Mistake not found")
     mistake.accepted = body.accepted
     session.add(mistake)
@@ -166,11 +208,12 @@ def decide(mistake_id: int, body: DecisionIn, session: SessionDep) -> Mistake:
 
 
 @app.get("/api/stats", response_model=list[CategoryCount])
-def stats(session: SessionDep) -> list[CategoryCount]:
+def stats(session: SessionDep, owner: OwnerDep) -> list[CategoryCount]:
     """Accepted mistakes per category, most frequent first."""
     rows = session.exec(
         select(Mistake.category, func.count())
-        .where(Mistake.accepted == True)  # noqa: E712 (SQL expression)
+        .join(Entry)
+        .where(Mistake.accepted == True, Entry.owner == owner)  # noqa: E712 (SQL expression)
         .group_by(Mistake.category)
         .order_by(func.count().desc())
     ).all()
@@ -205,13 +248,17 @@ def _drill_read(drill: DrillSet) -> DrillSetRead:
 
 
 @app.post("/api/drills", response_model=DrillSetRead, status_code=201)
-def create_drill(body: DrillCreate, session: SessionDep, make_drills: DrillDep) -> DrillSetRead:
+def create_drill(
+    body: DrillCreate, session: SessionDep, make_drills: DrillDep, owner: OwnerDep
+) -> DrillSetRead:
     """Generate a set of exercises for one mistake type (default: the most common one)."""
+    _demo_limit(session, DrillSet, owner, DEMO_MAX_DRILLS)
     category = body.category
     if category is None:
         top = session.exec(
             select(Mistake.category)
-            .where(Mistake.accepted == True)  # noqa: E712 (SQL expression)
+            .join(Entry)
+            .where(Mistake.accepted == True, Entry.owner == owner)  # noqa: E712 (SQL expression)
             .group_by(Mistake.category)
             .order_by(func.count().desc())
         ).first()
@@ -226,7 +273,8 @@ def create_drill(body: DrillCreate, session: SessionDep, make_drills: DrillDep) 
 
     recent = session.exec(
         select(Mistake)
-        .where(Mistake.category == category, Mistake.accepted == True)  # noqa: E712
+        .join(Entry)
+        .where(Mistake.category == category, Mistake.accepted == True, Entry.owner == owner)  # noqa: E712
         .order_by(col(Mistake.id).desc())
         .limit(5)
     ).all()
@@ -238,7 +286,7 @@ def create_drill(body: DrillCreate, session: SessionDep, make_drills: DrillDep) 
     except (ConfigError, LLMError) as exc:
         raise HTTPException(status_code=502, detail=f"Couldn't create exercises: {exc}") from exc
 
-    drill = DrillSet(category=category)
+    drill = DrillSet(category=category, owner=owner)
     for i, ex in enumerate(generated):
         drill.exercises.append(
             Exercise(
@@ -256,8 +304,9 @@ def create_drill(body: DrillCreate, session: SessionDep, make_drills: DrillDep) 
 
 
 @app.get("/api/drills", response_model=list[DrillSummary])
-def list_drills(session: SessionDep) -> list[DrillSummary]:
-    drills = session.exec(select(DrillSet).order_by(col(DrillSet.created_at).desc())).all()
+def list_drills(session: SessionDep, owner: OwnerDep) -> list[DrillSummary]:
+    query = select(DrillSet).where(DrillSet.owner == owner)
+    drills = session.exec(query.order_by(col(DrillSet.created_at).desc())).all()
     return [
         DrillSummary(
             id=d.id or 0,
@@ -273,18 +322,17 @@ def list_drills(session: SessionDep) -> list[DrillSummary]:
 
 
 @app.get("/api/drills/{drill_id}", response_model=DrillSetRead)
-def get_drill(drill_id: int, session: SessionDep) -> DrillSetRead:
-    drill = session.get(DrillSet, drill_id)
-    if drill is None:
-        raise HTTPException(status_code=404, detail="Practice set not found")
-    return _drill_read(drill)
+def get_drill(drill_id: int, session: SessionDep, owner: OwnerDep) -> DrillSetRead:
+    return _drill_read(_own_drill(session, drill_id, owner))
 
 
 @app.post("/api/exercises/{exercise_id}/answer", response_model=ExerciseRead)
-def answer_exercise(exercise_id: int, body: AnswerIn, session: SessionDep) -> ExerciseRead:
+def answer_exercise(
+    exercise_id: int, body: AnswerIn, session: SessionDep, owner: OwnerDep
+) -> ExerciseRead:
     """Grade one answer. Each exercise can be answered once."""
     exercise = session.get(Exercise, exercise_id)
-    if exercise is None:
+    if exercise is None or exercise.drill_set is None or exercise.drill_set.owner != owner:
         raise HTTPException(status_code=404, detail="Exercise not found")
     if exercise.chosen is not None:
         raise HTTPException(status_code=409, detail="This exercise was already answered")
@@ -296,3 +344,20 @@ def answer_exercise(exercise_id: int, body: AnswerIn, session: SessionDep) -> Ex
     session.commit()
     session.refresh(exercise)
     return _exercise_read(exercise)
+
+
+# --- Frontend -----------------------------------------------------------------------------
+# When the built React app is present (as in the Docker image), serve it from this server so
+# the demo is a single service. Registered last, so every /api route above wins.
+
+if (FRONTEND_DIST / "index.html").is_file():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def frontend(path: str) -> FileResponse:
+        if path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not found")
+        file = (FRONTEND_DIST / path).resolve()
+        if path and file.is_file() and file.is_relative_to(FRONTEND_DIST.resolve()):
+            return FileResponse(file)
+        return FileResponse(FRONTEND_DIST / "index.html")

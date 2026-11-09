@@ -36,10 +36,33 @@ export interface CategoryCount {
   count: number
 }
 
+/** A random id kept in this browser. In demo mode it keeps each visitor's journal private. */
+function visitorId(): string {
+  const key = 'mistake-journal:visitor'
+  try {
+    let id = localStorage.getItem(key)
+    if (!id) {
+      id = crypto.randomUUID()
+      localStorage.setItem(key, id)
+    }
+    return id
+  } catch {
+    // Storage blocked: fall back to an id for this page load only.
+    memoryId ??= crypto.randomUUID()
+    return memoryId
+  }
+}
+let memoryId: string | undefined
+
+export interface ServerConfig {
+  demo: boolean
+  samples: string[]
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const resp = await fetch(`/api${path}`, {
-    headers: { 'Content-Type': 'application/json' },
     ...init,
+    headers: { 'Content-Type': 'application/json', 'X-Visitor-Id': visitorId() },
   })
   if (!resp.ok) {
     const body = await resp.json().catch(() => null)
@@ -50,6 +73,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  config: () => request<ServerConfig>('/config'),
   checkEntry: (text: string) =>
     request<CheckedEntry>('/entries', { method: 'POST', body: JSON.stringify({ text }) }),
   listEntries: () => request<Entry[]>('/entries'),

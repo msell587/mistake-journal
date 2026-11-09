@@ -21,10 +21,17 @@ def create_db() -> None:
 
 def _add_missing_columns() -> None:
     """Tiny migration: add columns introduced after a database was first created."""
-    existing = {c["name"] for c in inspect(engine).get_columns("mistake")}
+    added = {
+        "mistake": {"start": "INTEGER"},
+        "entry": {"owner": "VARCHAR NOT NULL DEFAULT 'local'"},
+        "drillset": {"owner": "VARCHAR NOT NULL DEFAULT 'local'"},
+    }
     with engine.begin() as conn:
-        if "start" not in existing:
-            conn.execute(text("ALTER TABLE mistake ADD COLUMN start INTEGER"))
+        for table, columns in added.items():
+            existing = {c["name"] for c in inspect(conn).get_columns(table)}
+            for name, ddl in columns.items():
+                if name not in existing:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}"))
 
 
 def get_session() -> Iterator[Session]:

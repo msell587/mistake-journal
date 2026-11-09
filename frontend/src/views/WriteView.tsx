@@ -14,6 +14,7 @@ import {
   SECONDS_PER_SENTENCE,
   WRITING_PROMPTS,
   countSentences,
+  correctedSentence,
   countWords,
   plural,
 } from '../lib'
@@ -22,6 +23,7 @@ interface Props {
   entries: Entry[]
   labels: Record<string, string>
   onChecked: (entry: Entry) => void
+  onEntryUpdated: (entry: Entry) => void
   onDecide: (mistake: Mistake, accepted: boolean) => Promise<void>
   onOpenInsights: () => void
 }
@@ -45,7 +47,16 @@ function saveDraft(text: string) {
   }
 }
 
-export function WriteView({ entries, labels, onChecked, onDecide, onOpenInsights }: Props) {
+/** Turn grammar-agent's technical reasons into something a learner can act on. */
+function friendlyReason(reason: string): string {
+  if (/rate-limited|overloaded|timed out|HTTP 5\d\d|HTTP 429/i.test(reason)) {
+    return 'The AI service was busy. Try again in a moment.'
+  }
+  if (/provider returned an error/i.test(reason)) return 'The AI service returned an error.'
+  return 'The suggested fix changed too much, so it was left out to be safe.'
+}
+
+export function WriteView({ entries, labels, onChecked, onEntryUpdated, onDecide, onOpenInsights }: Props) {
   const [text, setText] = useState(loadDraft)
   const [promptIndex, setPromptIndex] = useState(() => new Date().getDate() % WRITING_PROMPTS.length)
   const [checking, setChecking] = useState(false)
@@ -55,6 +66,7 @@ export function WriteView({ entries, labels, onChecked, onDecide, onOpenInsights
   const [resultId, setResultId] = useState<number | null>(null)
   const [flagged, setFlagged] = useState<FlaggedSentence[]>([])
   const [activeId, setActiveId] = useState<number | null>(null)
+  const [retrying, setRetrying] = useState(false)
   const [mode, setMode] = useState<'original' | 'corrected'>('original')
   const cardRefs = useRef(new Map<number, HTMLLIElement>())
   const resultRef = useRef<HTMLElement>(null)
@@ -106,6 +118,21 @@ export function WriteView({ entries, labels, onChecked, onDecide, onOpenInsights
   function select(id: number) {
     setActiveId(id)
     cardRefs.current.get(id)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }
+
+  async function retryFlagged() {
+    if (!result) return
+    setRetrying(true)
+    setError(null)
+    try {
+      const checked = await api.recheck(result.id, flagged.map((f) => f.sentence))
+      onEntryUpdated(checked.entry)
+      setFlagged(checked.flagged)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setRetrying(false)
+    }
   }
 
   async function acceptAll() {
@@ -245,12 +272,30 @@ export function WriteView({ entries, labels, onChecked, onDecide, onOpenInsights
               onSelect={select}
             />
             {flagged.length > 0 && (
-              <div className="flagged">
-                <strong>Some sentences couldn't be checked safely</strong>, so they were left as written:
+              <div className="flagged" role="status">
+                <div className="flagged-head">
+                  <AlertIcon />
+                  <div>
+                    <strong>
+                      {flagged.length === 1
+                        ? "1 sentence couldn't be checked"
+                        : `${flagged.length} sentences couldn't be checked`}
+                    </strong>
+                    <p className="subtle">It was left exactly as you wrote it.</p>
+                  </div>
+                  <button className="btn btn-ghost btn-sm" onClick={retryFlagged} disabled={retrying}>
+                    <RefreshIcon size={15} className={retrying ? 'spin' : ''} />
+                    {retrying ? 'Checking…' : 'Try again'}
+                  </button>
+                </div>
                 <ul>
                   {flagged.map((f) => (
                     <li key={f.sentence}>
-                      {f.sentence} <span className="subtle">({f.reasons.join('; ')})</span>
+                      “{f.sentence}”
+                      <span className="subtle" title={f.reasons.join('; ')}>
+                        {' '}
+                        {friendlyReason(f.reasons.join(' '))}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -300,6 +345,7 @@ export function WriteView({ entries, labels, onChecked, onDecide, onOpenInsights
                     }}
                     mistake={m}
                     label={labels[m.category] ?? m.category}
+                    corrected={correctedSentence(m.sentence, result.mistakes)}
                     index={i}
                     active={activeId === m.id}
                     onDecide={onDecide}

@@ -1,0 +1,86 @@
+[
+  {
+    "category": "verb_tense",
+    "sentence": "Last summer we ___ to Portugal for two weeks.",
+    "options": ["went", "go", "have gone", "going"],
+    "answer": "went",
+    "explanation": "'Last summer' is a finished time in the past, so use the past simple: 'went'."
+  },
+  {
+    "category": "verb_tense",
+    "sentence": "She ___ dinner when the phone rang.",
+    "options": ["was cooking", "cooks", "is cooking"],
+    "answer": "was cooking",
+    "explanation": "An action in progress that was interrupted in the past uses the past continuous."
+  },
+  {
+    "category": "subject_verb_agreement",
+    "sentence": "My brother ___ in a hospital near the station.",
+    "options": ["works", "work", "are working"],
+    "answer": "works",
+    "explanation": "With he, she or it (here 'my brother'), add -s to the verb in the present simple."
+  },
+  {
+    "category": "subject_verb_agreement",
+    "sentence": "The results of the test ___ better than we expected.",
+    "options": ["were", "was", "is"],
+    "answer": "were",
+    "explanation": "The subject is 'results', which is plural, so the verb is 'were'."
+  },
+  {
+    "category": "articles",
+    "sentence": "I bought ___ umbrella because it started to rain.",
+    "options": ["an", "a", "the"],
+    "answer": "an",
+    "explanation": "Use 'an' before a vowel sound, and 'umbrella' starts with a vowel sound."
+  },
+  {
+    "category": "prepositions",
+    "sentence": "The meeting starts ___ 9 o'clock tomorrow.",
+    "options": ["at", "on", "in"],
+    "answer": "at",
+    "explanation": "Use 'at' with clock times, like 'at 9 o'clock'."
+  },
+  {
+    "category": "prepositions",
+    "sentence": "We usually go hiking ___ the weekend.",
+    "options": ["at", "in", "for"],
+    "answer": "at",
+    "explanation": "In British English we say 'at the weekend' (American English often uses 'on')."
+  },
+  {
+    "category": "word_choice",
+    "sentence": "This coffee is stronger ___ the one I had yesterday.",
+    "options": ["than", "then", "that"],
+    "answer": "than",
+    "explanation": "Use 'than' to compare two things. 'Then' is about time."
+  },
+  {
+    "category": "word_choice",
+    "sentence": "___ going to the cinema tonight, if you want to join.",
+    "options": ["They're", "Their", "There"],
+    "answer": "They're",
+    "explanation": "'They're' is short for 'they are', which is what this sentence needs."
+  },
+  {
+    "category": "plurals",
+    "sentence": "There are three ___ playing in the garden.",
+    "options": ["children", "childs", "childrens"],
+    "answer": "children",
+    "explanation": "'Child' has an irregular plural: 'children'."
+  },
+  {
+    "category": "spelling",
+    "sentence": "I'll see you ___ at the library.",
+    "options": ["tomorrow", "tomorow", "tommorow"],
+    "answer": "tomorrow",
+    "explanation": "'Tomorrow' is spelled with one 'm' and two 'r's."
+  },
+  {
+    "category": "pronouns",
+    "sentence": "My friend and ___ finished the project last night.",
+    "options": ["I", "me", "myself"],
+    "answer": "I",
+    "explanation": "This is the subject of the sentence, so use 'I', not 'me'."
+  }
+]

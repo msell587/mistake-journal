@@ -1,6 +1,6 @@
 # Mistake Journal
 
-A daily writing journal for English learners. You write a few sentences, get each mistake corrected with a plain-English explanation, and decide which corrections to accept. The app remembers the mistakes you accept, shows which kinds you make most often, and (coming next) builds practice drills from them.
+A daily writing journal for English learners. You write a few sentences, get each mistake corrected with a plain-English explanation, and decide which corrections to accept. The app remembers the mistakes you accept, shows which kinds you make most often, and writes short practice quizzes from them.
 
 Corrections come from [grammar-agent](https://github.com/msell587/grammar-agent), my LLM grammar checker with guardrails: sentences the model can't correct safely are flagged instead of silently rewritten.
 
@@ -8,6 +8,9 @@ Corrections come from [grammar-agent](https://github.com/msell587/grammar-agent)
 
 - **Write:** a daily writing prompt, live word and sentence counts, a progress estimate while the entry is checked, and your draft is kept if you close the tab.
 - **Review:** your entry with every mistake highlighted. Click a highlight to jump to its correction, accept or reject each one (or all at once), and flip to a view with your accepted fixes applied.
+- **Correct sentence:** every correction shows what you wrote next to the whole sentence with its fixes applied.
+- **Try again:** if the AI service is busy and a sentence can't be checked, one click rechecks just that sentence.
+- **Practice:** five-question multiple-choice quizzes on your most common mistake type (or any type you pick), written by the AI from your own mistakes. Each answer is graded with an explanation and the correct sentence, and past sessions keep their scores. Every exercise is validated before it is shown: one blank, 3–4 distinct options, exactly one correct.
 - **Categories:** each mistake is tagged (verb tense, articles, prepositions, subject-verb agreement…). Only accepted corrections are counted.
 - **History:** every past entry, filterable by mistake type, with its corrections. Entries can be deleted.
 - **Insights:** entries, words written, mistakes per 100 words, your day streak, a "focus area", mistakes by type, and mistakes per day over the last 14 days. Charts have hover details and a table view.
@@ -15,8 +18,7 @@ Corrections come from [grammar-agent](https://github.com/msell587/grammar-agent)
 
 ## Next
 
-1. Drills generated from your most common mistake type
-2. Deploy a live demo
+1. Deploy a live demo
 
 ## Stack
 
@@ -76,6 +78,11 @@ The tests use grammar-agent's mock provider, so they need no API key or network.
 | `PATCH` | `/api/mistakes/{id}` | Accept or reject a correction |
 | `GET` | `/api/stats` | Accepted mistakes per category |
 | `GET` | `/api/categories` | The fixed category list |
+| `POST` | `/api/entries/{id}/recheck` | Recheck sentences that couldn't be checked |
+| `POST` | `/api/drills` | Generate a practice set (default: most common mistake type) |
+| `GET` | `/api/drills` | Past practice sets with scores |
+| `GET` | `/api/drills/{id}` | One practice set |
+| `POST` | `/api/exercises/{id}/answer` | Grade an answer and reveal the explanation |
 
 ## License
 

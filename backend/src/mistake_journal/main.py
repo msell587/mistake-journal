@@ -76,6 +76,7 @@ def create_entry(body: EntryCreate, session: SessionDep, check: CheckDep) -> Che
                     explanation=change.explanation,
                     change_type=change.type,
                     category=categorize(change.category),
+                    start=result.sentence.start + change.offset,
                 )
             )
     session.add(entry)
@@ -89,6 +90,15 @@ def create_entry(body: EntryCreate, session: SessionDep, check: CheckDep) -> Che
 @app.get("/api/entries", response_model=list[EntryRead])
 def list_entries(session: SessionDep) -> list[Entry]:
     return list(session.exec(select(Entry).order_by(col(Entry.created_at).desc())))
+
+
+@app.delete("/api/entries/{entry_id}", status_code=204)
+def delete_entry(entry_id: int, session: SessionDep) -> None:
+    entry = session.get(Entry, entry_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    session.delete(entry)
+    session.commit()
 
 
 @app.patch("/api/mistakes/{mistake_id}", response_model=MistakeRead)

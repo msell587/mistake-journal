@@ -124,3 +124,25 @@ def test_entries_listed(client: TestClient) -> None:
     entries = client.get("/api/entries").json()
     assert len(entries) == 1
     assert entries[0]["mistakes"][0]["replacement"] == "reading"
+
+
+def test_mistake_positions_point_into_the_entry(client: TestClient) -> None:
+    text = "She go to school every day. I like reeding."
+    mistakes = client.post("/api/entries", json={"text": text}).json()["entry"]["mistakes"]
+    for m in mistakes:
+        assert text[m["start"] : m["start"] + len(m["original_span"])] == m["original_span"]
+
+
+def test_created_at_is_utc(client: TestClient) -> None:
+    client.post("/api/entries", json={"text": "I like reeding."})
+    created = client.get("/api/entries").json()[0]["created_at"]
+    assert created.endswith(("Z", "+00:00"))
+
+
+def test_delete_entry_removes_its_mistakes(client: TestClient) -> None:
+    entry = client.post("/api/entries", json={"text": "I like reeding."}).json()["entry"]
+    client.patch(f"/api/mistakes/{entry['mistakes'][0]['id']}", json={"accepted": True})
+    assert client.delete(f"/api/entries/{entry['id']}").status_code == 204
+    assert client.get("/api/entries").json() == []
+    assert client.get("/api/stats").json() == []
+    assert client.delete(f"/api/entries/{entry['id']}").status_code == 404

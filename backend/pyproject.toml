@@ -26,8 +26,7 @@ dev = [
 # The checking engine is the author's own grammar-agent project.
 # To develop both together, point this at a local checkout instead:
 # grammar-agent = { path = "../../spelling and grammar checker app", editable = true }
-# Temporarily on the branch that adds custom schemas (needed for drills); back to "main" once merged.
-grammar-agent = { git = "https://github.com/msell587/grammar-agent.git", branch = "custom-response-schema" }
+grammar-agent = { git = "https://github.com/msell587/grammar-agent.git", branch = "main" }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mistake_journal"]

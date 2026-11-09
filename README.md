@@ -38,7 +38,7 @@ You need Python 3.11+, [uv](https://docs.astral.sh/uv/) and Node 20+.
 
 ### Backend
 
-The backend uses grammar-agent from a local checkout at `../spelling and grammar checker app` (set in `backend/pyproject.toml`), so changes to both projects can be developed together.
+The backend installs grammar-agent from GitHub. To change both projects together, point it at a local checkout instead (see the comment in `backend/pyproject.toml`).
 
 ```bash
 cd backend && uv sync && cp .env.example .env

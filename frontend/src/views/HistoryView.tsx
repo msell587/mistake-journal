@@ -3,7 +3,7 @@ import type { Entry, Mistake } from '../api'
 import { EntryText } from '../components/EntryText'
 import { BookIcon, ChevronIcon, PenIcon, TrashIcon } from '../components/Icons'
 import { MistakeCard } from '../components/MistakeCard'
-import { countWords, formatDate, plural } from '../lib'
+import { correctedSentence, countWords, formatDate, plural } from '../lib'
 
 interface Props {
   entries: Entry[]
@@ -121,6 +121,7 @@ export function HistoryView({ entries, labels, onDecide, onDelete, onWrite }: Pr
                           key={m.id}
                           mistake={m}
                           label={labels[m.category] ?? m.category}
+                    corrected={correctedSentence(m.sentence, entry.mistakes)}
                           index={j}
                           onDecide={onDecide}
                         />

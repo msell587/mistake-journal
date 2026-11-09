@@ -80,7 +80,7 @@ wheels = [
 [[package]]
 name = "grammar-agent"
 version = "0.1.0"
-source = { git = "https://github.com/msell587/grammar-agent.git?branch=main#f9eb3c1b878e6c455da4b10875796f1c3e163dde" }
+source = { git = "https://github.com/msell587/grammar-agent.git?branch=custom-response-schema#3a0083cdf45d9d73e1ff4bb7abc28b839f97ac02" }
 dependencies = [
     { name = "httpx" },
     { name = "python-dotenv" },
@@ -261,7 +261,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
-    { name = "grammar-agent", git = "https://github.com/msell587/grammar-agent.git?branch=main" },
+    { name = "grammar-agent", git = "https://github.com/msell587/grammar-agent.git?branch=custom-response-schema" },
     { name = "sqlmodel", specifier = ">=0.0.22" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
 ]

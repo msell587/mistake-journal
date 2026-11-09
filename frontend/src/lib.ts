@@ -112,3 +112,33 @@ export const WRITING_PROMPTS = [
   'Write about a book, film or series you like. What happens in it?',
   'If you could change one thing about your city, what would it be?',
 ]
+
+export interface SentencePart {
+  text: string
+  /** Set when this part is a replacement; the id of the mistake it fixes. */
+  fixId?: number
+}
+
+/** The sentence with every fix for it applied, as parts so a given fix can be highlighted. */
+export function correctedSentence(sentence: string, mistakes: Mistake[]): SentencePart[] {
+  const placed: { at: number; m: Mistake }[] = []
+  for (const m of mistakes) {
+    if (m.sentence !== sentence) continue
+    // Search past spans already placed, so a repeated word maps to the right occurrence.
+    let at = sentence.indexOf(m.original_span)
+    while (at !== -1 && placed.some((p) => at < p.at + p.m.original_span.length && p.at < at + m.original_span.length)) {
+      at = sentence.indexOf(m.original_span, at + 1)
+    }
+    if (at !== -1) placed.push({ at, m })
+  }
+  placed.sort((a, b) => a.at - b.at)
+  const parts: SentencePart[] = []
+  let cursor = 0
+  for (const { at, m } of placed) {
+    if (at > cursor) parts.push({ text: sentence.slice(cursor, at) })
+    parts.push({ text: m.replacement, fixId: m.id })
+    cursor = at + m.original_span.length
+  }
+  if (cursor < sentence.length) parts.push({ text: sentence.slice(cursor) })
+  return parts
+}

@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, type CategoryCount, type Entry, type Mistake } from './api'
-import { BookIcon, ChartIcon, FlameIcon, PenIcon } from './components/Icons'
+import { BookIcon, ChartIcon, FlameIcon, PenIcon, TargetIcon } from './components/Icons'
 import { dayStreak, plural } from './lib'
 import { HistoryView } from './views/HistoryView'
 import { InsightsView } from './views/InsightsView'
+import { PracticeView } from './views/PracticeView'
 import { WriteView } from './views/WriteView'
 
-type Tab = 'write' | 'history' | 'insights'
-const TABS: Tab[] = ['write', 'history', 'insights']
+type Tab = 'write' | 'practice' | 'history' | 'insights'
+const TABS: Tab[] = ['write', 'practice', 'history', 'insights']
 
 function tabFromHash(): Tab {
   const hash = window.location.hash.slice(1)
@@ -84,6 +85,9 @@ export default function App() {
             <button role="tab" className="tab" aria-selected={tab === 'write'} onClick={() => go('write')}>
               <PenIcon size={16} /> Write
             </button>
+            <button role="tab" className="tab" aria-selected={tab === 'practice'} onClick={() => go('practice')}>
+              <TargetIcon size={16} /> Practice
+            </button>
             <button role="tab" className="tab" aria-selected={tab === 'history'} onClick={() => go('history')}>
               <BookIcon size={16} /> History
               {toReview > 0 && (
@@ -110,10 +114,12 @@ export default function App() {
             entries={entries}
             labels={labels}
             onChecked={(entry) => setEntries((prev) => [entry, ...prev])}
+            onEntryUpdated={(entry) => setEntries((prev) => prev.map((e) => (e.id === entry.id ? entry : e)))}
             onDecide={decide}
             onOpenInsights={() => go('insights')}
           />
         )}
+        {tab === 'practice' && <PracticeView stats={stats} onWrite={() => go('write')} />}
         {tab === 'history' && (
           <HistoryView
             entries={entries}

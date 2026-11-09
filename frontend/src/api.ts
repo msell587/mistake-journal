@@ -61,4 +61,49 @@ export const api = {
     }),
   stats: () => request<CategoryCount[]>('/stats'),
   categories: () => request<Record<string, string>>('/categories'),
+  recheck: (entryId: number, sentences: string[]) =>
+    request<CheckedEntry>(`/entries/${entryId}/recheck`, {
+      method: 'POST',
+      body: JSON.stringify({ sentences }),
+    }),
+  createDrill: (category?: string) =>
+    request<DrillSet>('/drills', { method: 'POST', body: JSON.stringify({ category: category ?? null }) }),
+  listDrills: () => request<DrillSummary[]>('/drills'),
+  getDrill: (drillId: number) => request<DrillSet>(`/drills/${drillId}`),
+  answer: (exerciseId: number, choice: string) =>
+    request<Exercise>(`/exercises/${exerciseId}/answer`, {
+      method: 'POST',
+      body: JSON.stringify({ choice }),
+    }),
+}
+
+export interface Exercise {
+  id: number
+  position: number
+  /** Contains one "___" blank. */
+  sentence: string
+  options: string[]
+  chosen: string | null
+  correct: boolean | null
+  /** Revealed once answered. */
+  answer: string | null
+  explanation: string | null
+}
+
+export interface DrillSet {
+  id: number
+  category: string
+  label: string
+  created_at: string
+  exercises: Exercise[]
+}
+
+export interface DrillSummary {
+  id: number
+  category: string
+  label: string
+  created_at: string
+  total: number
+  answered: number
+  correct: number
 }

@@ -1,18 +1,21 @@
 import { forwardRef } from 'react'
 import type { Mistake } from '../api'
+import type { SentencePart } from '../lib'
 import { ArrowIcon, CheckIcon, XIcon } from './Icons'
 
 interface Props {
   mistake: Mistake
   label: string
   index: number
+  /** The whole sentence with its fixes applied (see lib.correctedSentence). */
+  corrected: SentencePart[]
   active?: boolean
   onDecide: (mistake: Mistake, accepted: boolean) => void
   onFocus?: () => void
 }
 
 export const MistakeCard = forwardRef<HTMLLIElement, Props>(function MistakeCard(
-  { mistake: m, label, index, active, onDecide, onFocus },
+  { mistake: m, label, index, corrected, active, onDecide, onFocus },
   ref,
 ) {
   const state = m.accepted === null ? '' : m.accepted ? 'accepted' : 'rejected'
@@ -35,7 +38,24 @@ export const MistakeCard = forwardRef<HTMLLIElement, Props>(function MistakeCard
         </span>
       </div>
       <p className="explanation">{m.explanation}</p>
-      <p className="context">“{m.sentence}”</p>
+      <div className="sentences">
+        <p>
+          <span className="sentence-tag">You wrote</span>
+          <span className="sentence-text">{m.sentence}</span>
+        </p>
+        <p className="corrected-line">
+          <span className="sentence-tag">Correct sentence</span>
+          <span className="sentence-text">
+            {corrected.map((part, i) =>
+              part.fixId === m.id ? (
+                <ins key={i}>{part.text}</ins>
+              ) : (
+                <span key={i}>{part.text}</span>
+              ),
+            )}
+          </span>
+        </p>
+      </div>
       <div className="mistake-actions">
         <button
           className="btn btn-ghost btn-sm btn-accept"

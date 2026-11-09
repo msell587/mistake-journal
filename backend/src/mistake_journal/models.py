@@ -38,6 +38,31 @@ class Mistake(SQLModel, table=True):
     entry: Entry | None = Relationship(back_populates="mistakes")
 
 
+class DrillSet(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    category: str = Field(index=True)
+    created_at: datetime = Field(default_factory=utcnow, index=True)
+
+    exercises: list["Exercise"] = Relationship(
+        back_populates="drill_set",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan", "order_by": "Exercise.position"},
+    )
+
+
+class Exercise(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    drill_set_id: int = Field(foreign_key="drillset.id", index=True)
+    position: int
+    sentence: str  # contains one "___" blank
+    options_json: str  # JSON list of the answer options, in display order
+    answer: str
+    explanation: str
+    chosen: str | None = None
+    correct: bool | None = None
+
+    drill_set: DrillSet | None = Relationship(back_populates="exercises")
+
+
 # --- API schemas --------------------------------------------------------------------------
 
 
@@ -88,3 +113,55 @@ class CategoryCount(SQLModel):
     category: str
     label: str
     count: int
+
+
+class RecheckIn(SQLModel):
+    sentences: list[str] = Field(min_length=1, max_length=50)
+
+
+class DrillCreate(SQLModel):
+    category: str | None = None  # None: practise the learner's most common mistake type
+
+
+class ExerciseRead(SQLModel):
+    id: int
+    position: int
+    sentence: str
+    options: list[str]
+    chosen: str | None
+    correct: bool | None
+    # Revealed only once the exercise has been answered.
+    answer: str | None
+    explanation: str | None
+
+
+class DrillSetRead(SQLModel):
+    id: int
+    category: str
+    label: str
+    created_at: datetime
+    exercises: list[ExerciseRead]
+
+    @field_validator("created_at")
+    @classmethod
+    def _as_utc(cls, value: datetime) -> datetime:
+        return value if value.tzinfo else value.replace(tzinfo=UTC)
+
+
+class DrillSummary(SQLModel):
+    id: int
+    category: str
+    label: str
+    created_at: datetime
+    total: int
+    answered: int
+    correct: int
+
+    @field_validator("created_at")
+    @classmethod
+    def _as_utc(cls, value: datetime) -> datetime:
+        return value if value.tzinfo else value.replace(tzinfo=UTC)
+
+
+class AnswerIn(SQLModel):
+    choice: str = Field(min_length=1, max_length=200)

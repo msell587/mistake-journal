@@ -2,6 +2,7 @@
 
 from datetime import UTC, datetime
 
+from pydantic import field_validator
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -32,6 +33,7 @@ class Mistake(SQLModel, table=True):
     change_type: str  # grammar-agent's coarse type: spelling, grammar, punctuation, other
     category: str = Field(index=True)  # one of categories.CATEGORIES
     accepted: bool | None = None  # None until the learner decides
+    start: int | None = None  # where original_span starts in the entry text (None: older rows)
 
     entry: Entry | None = Relationship(back_populates="mistakes")
 
@@ -52,6 +54,7 @@ class MistakeRead(SQLModel):
     change_type: str
     category: str
     accepted: bool | None
+    start: int | None
 
 
 class EntryRead(SQLModel):
@@ -59,6 +62,12 @@ class EntryRead(SQLModel):
     text: str
     created_at: datetime
     mistakes: list[MistakeRead]
+
+    @field_validator("created_at")
+    @classmethod
+    def _as_utc(cls, value: datetime) -> datetime:
+        # SQLite drops the time zone; times are stored in UTC, so say so in the API.
+        return value if value.tzinfo else value.replace(tzinfo=UTC)
 
 
 class FlaggedSentence(SQLModel):

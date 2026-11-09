@@ -24,6 +24,8 @@ dev = [
 
 [tool.uv.sources]
 # The checking engine is the author's own grammar-agent project.
+# To develop both together, point this at a local checkout instead:
+# grammar-agent = { path = "../../spelling and grammar checker app", editable = true }
 grammar-agent = { git = "https://github.com/msell587/grammar-agent.git", branch = "main" }
 
 [tool.hatch.build.targets.wheel]

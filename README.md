@@ -4,20 +4,19 @@ A daily writing journal for English learners. You write a few sentences, get eac
 
 Corrections come from [grammar-agent](https://github.com/msell587/grammar-agent), my LLM grammar checker with guardrails: sentences the model can't correct safely are flagged instead of silently rewritten.
 
-## Status
+## Features
 
-Early scaffold. Working now:
+- **Write:** a daily writing prompt, live word and sentence counts, a progress estimate while the entry is checked, and your draft is kept if you close the tab.
+- **Review:** your entry with every mistake highlighted. Click a highlight to jump to its correction, accept or reject each one (or all at once), and flip to a view with your accepted fixes applied.
+- **Categories:** each mistake is tagged (verb tense, articles, prepositions, subject-verb agreement…). Only accepted corrections are counted.
+- **History:** every past entry, filterable by mistake type, with its corrections. Entries can be deleted.
+- **Insights:** entries, words written, mistakes per 100 words, your day streak, a "focus area", mistakes by type, and mistakes per day over the last 14 days. Charts have hover details and a table view.
+- Light and dark mode, works on a phone, keyboard accessible, and respects reduced-motion settings.
 
-- Write an entry and get corrections with explanations
-- Accept or reject each correction
-- "Your most common mistakes" counts, from accepted corrections only
+## Next
 
-Next:
-
-1. Have grammar-agent return a fine-grained category (verb tense, articles, prepositions…) for each change. Today most grammar mistakes are filed as "Other".
-2. Entry history and a mistakes-over-time chart
-3. Drills generated from your most common mistake type
-4. Deploy a live demo
+1. Drills generated from your most common mistake type
+2. Deploy a live demo
 
 ## Stack
 
@@ -37,6 +36,8 @@ frontend/  React app; the dev server proxies /api to the backend on :8000
 You need Python 3.11+, [uv](https://docs.astral.sh/uv/) and Node 20+.
 
 ### Backend
+
+The backend installs grammar-agent from GitHub. To change both projects together, point it at a local checkout instead (see the comment in `backend/pyproject.toml`).
 
 ```bash
 cd backend && uv sync && cp .env.example .env

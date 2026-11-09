@@ -80,7 +80,7 @@ wheels = [
 [[package]]
 name = "grammar-agent"
 version = "0.1.0"
-source = { git = "https://github.com/msell587/grammar-agent.git?branch=main#f8bd9def2627e6e9cd6fedee56447fe04081759d" }
+source = { git = "https://github.com/msell587/grammar-agent.git?branch=main#f9eb3c1b878e6c455da4b10875796f1c3e163dde" }
 dependencies = [
     { name = "httpx" },
     { name = "python-dotenv" },

@@ -27,6 +27,7 @@ SCRIPT = {
                     "original_span": "go",
                     "replacement": "goes",
                     "type": "grammar",
+                    "category": "subject_verb_agreement",
                     "explanation": "With he, she or it, add -s to the verb in the present simple.",
                 }
             ],
@@ -42,6 +43,7 @@ SCRIPT = {
                     "original_span": "reeding",
                     "replacement": "reading",
                     "type": "spelling",
+                    "category": "spelling",
                     "explanation": "'Reading' is spelled with 'ea'.",
                 }
             ],
@@ -84,7 +86,7 @@ def test_create_entry_stores_mistakes(client: TestClient) -> None:
         ("go", "goes"),
         ("reeding", "reading"),
     ]
-    assert {m["category"] for m in mistakes} == {"uncategorized", "spelling"}
+    assert [m["category"] for m in mistakes] == ["subject_verb_agreement", "spelling"]
     assert all(m["accepted"] is None for m in mistakes)
     assert resp.json()["flagged"] == []
 
@@ -107,6 +109,12 @@ def test_stats_count_only_accepted(client: TestClient) -> None:
     ]
 
 
+def test_categories_match_grammar_agent(client: TestClient) -> None:
+    categories = client.get("/api/categories").json()
+    assert categories["verb_tense"] == "Verb tense"
+    assert categories["other"] == "Other"
+
+
 def test_decide_unknown_mistake(client: TestClient) -> None:
     assert client.patch("/api/mistakes/999", json={"accepted": True}).status_code == 404
 
@@ -116,3 +124,25 @@ def test_entries_listed(client: TestClient) -> None:
     entries = client.get("/api/entries").json()
     assert len(entries) == 1
     assert entries[0]["mistakes"][0]["replacement"] == "reading"
+
+
+def test_mistake_positions_point_into_the_entry(client: TestClient) -> None:
+    text = "She go to school every day. I like reeding."
+    mistakes = client.post("/api/entries", json={"text": text}).json()["entry"]["mistakes"]
+    for m in mistakes:
+        assert text[m["start"] : m["start"] + len(m["original_span"])] == m["original_span"]
+
+
+def test_created_at_is_utc(client: TestClient) -> None:
+    client.post("/api/entries", json={"text": "I like reeding."})
+    created = client.get("/api/entries").json()[0]["created_at"]
+    assert created.endswith(("Z", "+00:00"))
+
+
+def test_delete_entry_removes_its_mistakes(client: TestClient) -> None:
+    entry = client.post("/api/entries", json={"text": "I like reeding."}).json()["entry"]
+    client.patch(f"/api/mistakes/{entry['mistakes'][0]['id']}", json={"accepted": True})
+    assert client.delete(f"/api/entries/{entry['id']}").status_code == 204
+    assert client.get("/api/entries").json() == []
+    assert client.get("/api/stats").json() == []
+    assert client.delete(f"/api/entries/{entry['id']}").status_code == 404

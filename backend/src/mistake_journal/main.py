@@ -62,7 +62,7 @@ CheckDep = Annotated[CheckFn, Depends(get_check_fn)]
 DrillDep = Annotated[DrillFn, Depends(get_drill_fn)]
 
 
-@app.get("/api/health")
+@app.api_route("/api/health", methods=["GET", "HEAD"])
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
@@ -353,7 +353,8 @@ def answer_exercise(
 if (FRONTEND_DIST / "index.html").is_file():
     app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="assets")
 
-    @app.get("/{path:path}", include_in_schema=False)
+    # HEAD too: hosting platforms and uptime monitors probe pages with it.
+    @app.api_route("/{path:path}", methods=["GET", "HEAD"], include_in_schema=False)
     def frontend(path: str) -> FileResponse:
         if path.startswith("api/"):
             raise HTTPException(status_code=404, detail="Not found")

@@ -321,3 +321,7 @@ def test_demo_limits_entries_per_visitor(
         assert client.post("/api/entries", json={"text": "Hi."}, headers=ALICE).status_code == 201
     assert client.post("/api/entries", json={"text": "Hi."}, headers=ALICE).status_code == 429
     assert client.post("/api/entries", json={"text": "Hi."}, headers=BOB).status_code == 201
+
+
+def test_health_answers_head_requests(client: TestClient) -> None:
+    assert client.head("/api/health").status_code == 200

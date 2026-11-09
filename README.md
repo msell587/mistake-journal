@@ -6,7 +6,9 @@ Corrections come from [grammar-agent](https://github.com/msell587/grammar-agent)
 
 ## Live demo
 
-**Demo link: coming soon** (hosted on Render's free tier, so the first visit after a quiet spell takes about a minute to wake up).
+**Try it: [mistake-journal-demo.onrender.com](https://mistake-journal-demo.onrender.com)**
+
+It's hosted on Render's free tier, so the first visit after a quiet spell can take about a minute while the server wakes up.
 
 The demo runs in **offline demo mode**: corrections and practice quizzes come from sample data, so no API key is stored on the server and it can't run up costs. Each browser gets its own private journal, and demo data resets when the server restarts. To check anything you write, run it locally with a free Gemini key (below).
 

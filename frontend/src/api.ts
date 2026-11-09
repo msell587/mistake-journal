@@ -56,4 +56,5 @@ export const api = {
       body: JSON.stringify({ accepted }),
     }),
   stats: () => request<CategoryCount[]>('/stats'),
+  categories: () => request<Record<string, string>>('/categories'),
 }

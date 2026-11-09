@@ -1,11 +1,13 @@
-"""The fixed list of mistake categories that statistics and drills are grouped by.
+"""Display names for grammar-agent's fixed list of mistake categories.
 
 A fixed list (rather than free text from the model) keeps the dashboard counts stable.
 """
 
 from __future__ import annotations
 
-CATEGORIES: dict[str, str] = {
+from grammar_agent.models import MISTAKE_CATEGORIES
+
+_LABELS = {
     "verb_tense": "Verb tense",
     "subject_verb_agreement": "Subject-verb agreement",
     "articles": "Articles (a / an / the)",
@@ -17,17 +19,18 @@ CATEGORIES: dict[str, str] = {
     "spelling": "Spelling",
     "punctuation": "Punctuation",
     "capitalization": "Capitalization",
-    "uncategorized": "Other",
+    "other": "Other",
 }
 
-# grammar-agent currently reports only a coarse change type. Until it returns one of the
-# categories above, map what we can and file the rest under "uncategorized".
-_FROM_CHANGE_TYPE = {"spelling": "spelling", "punctuation": "punctuation"}
+# Same order as grammar-agent; a category it adds later still shows, with a readable name.
+CATEGORIES: dict[str, str] = {
+    c: _LABELS.get(c, c.replace("_", " ").capitalize()) for c in MISTAKE_CATEGORIES
+}
 
 
-def categorize(change_type: str) -> str:
-    return _FROM_CHANGE_TYPE.get(change_type, "uncategorized")
+def categorize(category: str) -> str:
+    return category if category in CATEGORIES else "other"
 
 
 def label(category: str) -> str:
-    return CATEGORIES.get(category, CATEGORIES["uncategorized"])
+    return CATEGORIES.get(category, CATEGORIES["other"])

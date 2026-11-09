@@ -80,11 +80,21 @@ wheels = [
 [[package]]
 name = "grammar-agent"
 version = "0.1.0"
-source = { git = "https://github.com/msell587/grammar-agent.git?branch=main#f8bd9def2627e6e9cd6fedee56447fe04081759d" }
+source = { editable = "../../spelling and grammar checker app" }
 dependencies = [
     { name = "httpx" },
     { name = "python-dotenv" },
 ]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.11" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
+    { name = "python-dotenv", specifier = ">=1.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
+]
+provides-extras = ["dev"]
 
 [[package]]
 name = "h11"
@@ -261,7 +271,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
-    { name = "grammar-agent", git = "https://github.com/msell587/grammar-agent.git?branch=main" },
+    { name = "grammar-agent", editable = "../../spelling and grammar checker app" },
     { name = "sqlmodel", specifier = ">=0.0.22" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
 ]

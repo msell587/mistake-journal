@@ -7,10 +7,12 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<CheckedEntry | null>(null)
   const [stats, setStats] = useState<CategoryCount[]>([])
+  const [labels, setLabels] = useState<Record<string, string>>({})
 
   const refreshStats = () => api.stats().then(setStats).catch(() => {})
   useEffect(() => {
     refreshStats()
+    api.categories().then(setLabels).catch(() => {})
   }, [])
 
   async function submit(event: React.FormEvent) {
@@ -76,7 +78,7 @@ export default function App() {
                 <p className="sentence">{m.sentence}</p>
                 <p>
                   <del>{m.original_span}</del> → <ins>{m.replacement}</ins>{' '}
-                  <span className="tag">{m.category}</span>
+                  <span className="tag">{labels[m.category] ?? m.category}</span>
                 </p>
                 <p className="muted">{m.explanation}</p>
                 <div className="actions">

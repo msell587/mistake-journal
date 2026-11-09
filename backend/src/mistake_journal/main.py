@@ -75,7 +75,7 @@ def create_entry(body: EntryCreate, session: SessionDep, check: CheckDep) -> Che
                     replacement=change.replacement,
                     explanation=change.explanation,
                     change_type=change.type,
-                    category=categorize(change.type),
+                    category=categorize(change.category),
                 )
             )
     session.add(entry)

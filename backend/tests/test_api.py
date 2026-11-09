@@ -27,6 +27,7 @@ SCRIPT = {
                     "original_span": "go",
                     "replacement": "goes",
                     "type": "grammar",
+                    "category": "subject_verb_agreement",
                     "explanation": "With he, she or it, add -s to the verb in the present simple.",
                 }
             ],
@@ -42,6 +43,7 @@ SCRIPT = {
                     "original_span": "reeding",
                     "replacement": "reading",
                     "type": "spelling",
+                    "category": "spelling",
                     "explanation": "'Reading' is spelled with 'ea'.",
                 }
             ],
@@ -84,7 +86,7 @@ def test_create_entry_stores_mistakes(client: TestClient) -> None:
         ("go", "goes"),
         ("reeding", "reading"),
     ]
-    assert {m["category"] for m in mistakes} == {"uncategorized", "spelling"}
+    assert [m["category"] for m in mistakes] == ["subject_verb_agreement", "spelling"]
     assert all(m["accepted"] is None for m in mistakes)
     assert resp.json()["flagged"] == []
 
@@ -105,6 +107,12 @@ def test_stats_count_only_accepted(client: TestClient) -> None:
     assert client.get("/api/stats").json() == [
         {"category": "spelling", "label": "Spelling", "count": 1}
     ]
+
+
+def test_categories_match_grammar_agent(client: TestClient) -> None:
+    categories = client.get("/api/categories").json()
+    assert categories["verb_tense"] == "Verb tense"
+    assert categories["other"] == "Other"
 
 
 def test_decide_unknown_mistake(client: TestClient) -> None:

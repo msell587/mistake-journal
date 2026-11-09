@@ -23,8 +23,10 @@ dev = [
 ]
 
 [tool.uv.sources]
-# The checking engine is the author's own grammar-agent project.
-grammar-agent = { git = "https://github.com/msell587/grammar-agent.git", branch = "main" }
+# The checking engine is the author's own grammar-agent project, used from the local checkout
+# while both are developed together. Once its changes are on GitHub, switch back to:
+# grammar-agent = { git = "https://github.com/msell587/grammar-agent.git", branch = "main" }
+grammar-agent = { path = "../../spelling and grammar checker app", editable = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mistake_journal"]

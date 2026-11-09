@@ -10,14 +10,14 @@ Early scaffold. Working now:
 
 - Write an entry and get corrections with explanations
 - Accept or reject each correction
+- Each mistake tagged with a category (verb tense, articles, prepositions…)
 - "Your most common mistakes" counts, from accepted corrections only
 
 Next:
 
-1. Have grammar-agent return a fine-grained category (verb tense, articles, prepositions…) for each change. Today most grammar mistakes are filed as "Other".
-2. Entry history and a mistakes-over-time chart
-3. Drills generated from your most common mistake type
-4. Deploy a live demo
+1. Entry history and a mistakes-over-time chart
+2. Drills generated from your most common mistake type
+3. Deploy a live demo
 
 ## Stack
 
@@ -37,6 +37,8 @@ frontend/  React app; the dev server proxies /api to the backend on :8000
 You need Python 3.11+, [uv](https://docs.astral.sh/uv/) and Node 20+.
 
 ### Backend
+
+The backend uses grammar-agent from a local checkout at `../spelling and grammar checker app` (set in `backend/pyproject.toml`), so changes to both projects can be developed together.
 
 ```bash
 cd backend && uv sync && cp .env.example .env

@@ -1,0 +1,80 @@
+:root {
+  --bg: #f7f7f5;
+  --card: #ffffff;
+  --text: #1f2328;
+  --muted: #6b7280;
+  --accent: #2563eb;
+  --good: #16a34a;
+  --bad: #dc2626;
+  --border: #e5e7eb;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111318;
+    --card: #1b1e25;
+    --text: #e6e7ea;
+    --muted: #9aa0aa;
+    --accent: #60a5fa;
+    --good: #4ade80;
+    --bad: #f87171;
+    --border: #2c313a;
+  }
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); }
+
+.page { max-width: 720px; margin: 0 auto; padding: 24px 16px 64px; }
+h1 { margin: 0 0 4px; }
+.muted { color: var(--muted); }
+.error { color: var(--bad); }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+form.card { display: flex; flex-direction: column; gap: 10px; }
+label { font-weight: 600; }
+
+textarea {
+  font: inherit;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  resize: vertical;
+}
+
+button {
+  font: inherit;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  align-self: flex-start;
+}
+button.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+button:disabled { opacity: 0.5; cursor: default; }
+
+.mistakes { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.mistakes li { border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.mistakes li.accepted { border-color: var(--good); }
+.mistakes li.rejected { opacity: 0.6; }
+.mistakes p { margin: 4px 0; }
+.sentence { font-style: italic; }
+del { color: var(--bad); }
+ins { color: var(--good); text-decoration: none; font-weight: 600; }
+.tag { font-size: 0.8em; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+.actions { display: flex; gap: 8px; margin-top: 8px; }
